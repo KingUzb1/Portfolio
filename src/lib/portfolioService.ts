@@ -221,21 +221,35 @@ export async function deletePortfolioWork(id: string): Promise<void> {
 }
 
 export async function importStarterWorksToFirestore(): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Avtorizatsiya talab qilinadi');
+
   for (const item of STARTER_WORKS) {
-    await createPortfolioWork({
-      title: item.title,
-      category: item.category,
-      year: item.year,
-      client: item.client,
-      role: item.role,
-      summary: item.summary,
-      details: item.details,
-      imageUrl: item.imageUrl,
-      liveUrl: item.liveUrl,
-      tools: item.tools,
-      featured: item.featured,
-      isPublished: true,
-    });
+    const ref = doc(db, 'projects', item.id);
+    const snap = await getDoc(ref);
+    if (snap.exists()) continue;
+
+    try {
+      await setDoc(ref, {
+        ownerUid: user.uid,
+        title: trimStr(item.title, 140),
+        category: item.category,
+        year: item.year,
+        client: trimStr(item.client, 100),
+        role: trimStr(item.role, 100),
+        summary: trimStr(item.summary, 500),
+        details: trimStr(item.details, 2500),
+        imageUrl: trimStr(item.imageUrl, 500000),
+        liveUrl: trimStr(item.liveUrl, 300),
+        tools: item.tools.slice(0, 8),
+        featured: Boolean(item.featured),
+        isPublished: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `projects/${item.id}`);
+    }
   }
 }
 

@@ -36,6 +36,25 @@ export const ShowcaseGrid: React.FC<ShowcaseGridProps> = ({
   const [activeCategory, setActiveCategory] = useState<WorkCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+
+  const handleImport = async () => {
+    setImportError('');
+    setImporting(true);
+    try {
+      await onImportStarters();
+    } catch (err) {
+      setImportError(
+        err instanceof Error
+          ? err.message
+          : lang === 'uz'
+            ? 'Saqlashda xatolik yuz berdi.'
+            : 'Failed to import starters.'
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const categories: { id: WorkCategory; label: string }[] =
     lang === 'uz'
@@ -65,15 +84,6 @@ export const ShowcaseGrid: React.FC<ShowcaseGridProps> = ({
       return haystack.includes(q);
     });
   }, [works, activeCategory, searchQuery]);
-
-  const handleImport = async () => {
-    setImporting(true);
-    try {
-      await onImportStarters();
-    } finally {
-      setImporting(false);
-    }
-  };
 
   return (
     <section id="ishlar" className="py-16 sm:py-24">
@@ -146,6 +156,11 @@ export const ShowcaseGrid: React.FC<ShowcaseGridProps> = ({
                 </button>
               )}
             </div>
+            {importError && (
+              <p role="alert" className="text-xs font-medium text-[#D9381E] mt-2 lg:mt-0">
+                {importError}
+              </p>
+            )}
           </div>
         )}
 
@@ -212,31 +227,19 @@ export const ShowcaseGrid: React.FC<ShowcaseGridProps> = ({
             </div>
 
             <span className="font-mono-tabular text-xs text-[#6B6A65] dark:text-[#A1A1AA]">
-              {lang === 'uz'
-                ? `${filteredWorks.length} ta ish ko'rsatilmoqda`
-                : `Showing ${filteredWorks.length} works`}
+              {isLoading
+                ? lang === 'uz'
+                  ? 'Yangilanmoqda...'
+                  : 'Syncing...'
+                : lang === 'uz'
+                  ? `${filteredWorks.length} ta ish ko'rsatilmoqda`
+                  : `Showing ${filteredWorks.length} works`}
             </span>
           </div>
         </div>
 
-        {/* Loading State */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="rounded-2xl overflow-hidden bg-[#F3F1EC] dark:bg-[#131316] border border-black/[0.07] dark:border-white/[0.08] animate-pulse"
-              >
-                <div className="aspect-[4/3] bg-black/5 dark:bg-white/5" />
-                <div className="p-6 space-y-3">
-                  <div className="h-3 w-32 bg-black/10 dark:bg-white/10 rounded" />
-                  <div className="h-6 w-3/4 bg-black/10 dark:bg-white/10 rounded" />
-                  <div className="h-4 w-full bg-black/5 dark:bg-white/5 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredWorks.length === 0 ? (
+        {/* Empty State or Cards Grid (never hide starter/loaded cards behind skeletons) */}
+        {filteredWorks.length === 0 ? (
           <div className="py-16 px-6 text-center rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-[#F3F1EC] dark:bg-[#111114]">
             <p className="text-base font-medium text-[#141413] dark:text-[#F4F4F5] mb-3">
               {lang === 'uz'

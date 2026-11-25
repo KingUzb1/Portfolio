@@ -116,17 +116,25 @@ function PortfolioApp() {
   useEffect(() => {
     if (!authReady) return;
     setWorksLoading(true);
+    const fallbackTimer = setTimeout(() => {
+      setWorksLoading(false);
+    }, 4000);
     const unsub = subscribePortfolioWorks(
       isOwner,
       (items) => {
+        clearTimeout(fallbackTimer);
         setFirestoreWorks(items);
         setWorksLoading(false);
       },
       () => {
+        clearTimeout(fallbackTimer);
         setWorksLoading(false);
       }
     );
-    return unsub;
+    return () => {
+      clearTimeout(fallbackTimer);
+      unsub();
+    };
   }, [authReady, isOwner]);
 
   // Visitor messages listener (owner only)

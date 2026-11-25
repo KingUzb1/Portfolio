@@ -40,7 +40,6 @@ export const ResilientImage: React.FC<ResilientImageProps> = ({
       src={src}
       alt={alt}
       referrerPolicy="no-referrer"
-      loading="lazy"
       onError={() => setHasError(true)}
       className={className}
     />

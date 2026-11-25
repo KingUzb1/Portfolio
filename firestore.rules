@@ -1,0 +1,225 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email == 'ramziddinios@gmail.com';
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidPublicProfile(data) {
+      return data.keys().hasAll([
+          'ownerUid',
+          'brandName',
+          'specialty',
+          'headline',
+          'subheadline',
+          'aboutBio',
+          'skills',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerUid',
+          'brandName',
+          'specialty',
+          'headline',
+          'subheadline',
+          'aboutBio',
+          'experienceYears',
+          'skills',
+          'contactEmail',
+          'telegram',
+          'githubUrl',
+          'behanceUrl',
+          'instagramUrl',
+          'updatedAt'
+        ]) &&
+        data.ownerUid == request.auth.uid &&
+        isValidString(data.ownerUid, 1, 128) &&
+        isValidString(data.brandName, 1, 60) &&
+        isValidString(data.specialty, 2, 120) &&
+        isValidString(data.headline, 2, 160) &&
+        isValidString(data.subheadline, 2, 400) &&
+        isValidString(data.aboutBio, 2, 1200) &&
+        (!('experienceYears' in data) || isValidString(data.experienceYears, 1, 20)) &&
+        data.skills is list &&
+        data.skills.size() <= 12 &&
+        (data.skills.size() == 0 || data.skills[0] is string) &&
+        (!('contactEmail' in data) || isValidString(data.contactEmail, 0, 120)) &&
+        (!('telegram' in data) || isValidString(data.telegram, 0, 80)) &&
+        (!('githubUrl' in data) || isValidString(data.githubUrl, 0, 250)) &&
+        (!('behanceUrl' in data) || isValidString(data.behanceUrl, 0, 250)) &&
+        (!('instagramUrl' in data) || isValidString(data.instagramUrl, 0, 250)) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPortfolioWork(data) {
+      return data.keys().hasAll([
+          'ownerUid',
+          'title',
+          'category',
+          'year',
+          'summary',
+          'imageUrl',
+          'tools',
+          'featured',
+          'isPublished',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerUid',
+          'title',
+          'category',
+          'year',
+          'client',
+          'role',
+          'summary',
+          'details',
+          'imageUrl',
+          'liveUrl',
+          'tools',
+          'featured',
+          'isPublished',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.ownerUid == request.auth.uid &&
+        isValidString(data.ownerUid, 1, 128) &&
+        isValidString(data.title, 2, 140) &&
+        data.category in ['apex', 'bot', 'mobile', 'ai', 'web', 'uiux', 'branding', 'other'] &&
+        isValidString(data.year, 4, 12) &&
+        data.year.matches('^[0-9]{4}(-[0-9]{4})?$') &&
+        (!('client' in data) || isValidString(data.client, 0, 100)) &&
+        (!('role' in data) || isValidString(data.role, 0, 100)) &&
+        isValidString(data.summary, 4, 500) &&
+        (!('details' in data) || isValidString(data.details, 0, 2500)) &&
+        isValidString(data.imageUrl, 1, 500000) &&
+        (!('liveUrl' in data) || isValidString(data.liveUrl, 0, 300)) &&
+        data.tools is list &&
+        data.tools.size() <= 8 &&
+        (data.tools.size() == 0 || data.tools[0] is string) &&
+        data.featured is bool &&
+        data.isPublished is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidVisitorMessageBase(data) {
+      return data.keys().hasAll(['senderName', 'senderContact', 'body', 'isRead', 'createdAt']) &&
+        data.keys().hasOnly(['senderName', 'senderContact', 'body', 'isRead', 'createdAt']) &&
+        isValidString(data.senderName, 2, 80) &&
+        isValidString(data.senderContact, 3, 120) &&
+        isValidString(data.body, 5, 1500) &&
+        data.isRead is bool &&
+        data.createdAt is timestamp;
+    }
+
+    match /site/{docId} {
+      allow get: if isValidId(docId) && docId == 'public_profile';
+      allow list: if false;
+      allow create: if isAdmin() &&
+        isValidId(docId) &&
+        docId == 'public_profile' &&
+        isValidPublicProfile(incoming()) &&
+        incoming().updatedAt == request.time;
+      allow update: if isAdmin() &&
+        isValidId(docId) &&
+        docId == 'public_profile' &&
+        isValidPublicProfile(incoming()) &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'brandName',
+          'specialty',
+          'headline',
+          'subheadline',
+          'aboutBio',
+          'experienceYears',
+          'skills',
+          'contactEmail',
+          'telegram',
+          'githubUrl',
+          'behanceUrl',
+          'instagramUrl',
+          'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    match /projects/{projectId} {
+      allow get: if isValidId(projectId) && (existing().isPublished == true || isAdmin());
+      allow list: if existing().isPublished == true || isAdmin();
+      allow create: if isAdmin() &&
+        isValidId(projectId) &&
+        isValidPortfolioWork(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isAdmin() &&
+        isValidId(projectId) &&
+        isValidPortfolioWork(incoming()) &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'title',
+          'category',
+          'year',
+          'client',
+          'role',
+          'summary',
+          'details',
+          'imageUrl',
+          'liveUrl',
+          'tools',
+          'featured',
+          'isPublished',
+          'updatedAt'
+        ]);
+      allow delete: if isAdmin() && isValidId(projectId);
+    }
+
+    match /messages/{messageId} {
+      allow get: if isAdmin() && isValidId(messageId);
+      allow list: if isAdmin();
+      allow create: if isValidId(messageId) &&
+        isValidVisitorMessageBase(incoming()) &&
+        incoming().isRead == false &&
+        incoming().createdAt == request.time;
+      allow update: if isAdmin() &&
+        isValidId(messageId) &&
+        isValidVisitorMessageBase(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['isRead']) &&
+        incoming().senderName == existing().senderName &&
+        incoming().senderContact == existing().senderContact &&
+        incoming().body == existing().body &&
+        incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(messageId);
+    }
+  }
+}

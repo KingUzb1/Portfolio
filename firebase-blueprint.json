@@ -1,0 +1,212 @@
+{
+  "entities": {
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Publicly visible portfolio owner biography, skills, and contact links.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "brandName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "specialty": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "subheadline": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 400
+        },
+        "aboutBio": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 1200
+        },
+        "experienceYears": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "skills": {
+          "type": "array",
+          "description": "Bounded list of core skills or tools (max 12)"
+        },
+        "contactEmail": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "telegram": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "githubUrl": {
+          "type": "string",
+          "maxLength": 250
+        },
+        "behanceUrl": {
+          "type": "string",
+          "maxLength": 250
+        },
+        "instagramUrl": {
+          "type": "string",
+          "maxLength": 250
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "brandName",
+        "specialty",
+        "headline",
+        "subheadline",
+        "aboutBio",
+        "skills",
+        "updatedAt"
+      ]
+    },
+    "PortfolioWork": {
+      "title": "PortfolioWork",
+      "description": "A completed work or project posted in the personal portfolio showcase.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "category": {
+          "type": "string",
+          "enum": ["apex", "bot", "mobile", "ai", "web", "uiux", "branding", "other"]
+        },
+        "year": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 12,
+          "pattern": "^[0-9]{4}(-[0-9]{4})?$"
+        },
+        "client": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 500
+        },
+        "details": {
+          "type": "string",
+          "maxLength": 2500
+        },
+        "imageUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500000
+        },
+        "liveUrl": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "tools": {
+          "type": "array",
+          "description": "Bounded list of tools and technologies (max 8)"
+        },
+        "featured": {
+          "type": "boolean"
+        },
+        "isPublished": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "title",
+        "category",
+        "year",
+        "summary",
+        "imageUrl",
+        "tools",
+        "featured",
+        "isPublished",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VisitorMessage": {
+      "title": "VisitorMessage",
+      "description": "Private contact inquiry submitted by a portfolio visitor.",
+      "type": "object",
+      "properties": {
+        "senderName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "senderContact": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120
+        },
+        "body": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 1500
+        },
+        "isRead": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["senderName", "senderContact", "body", "isRead", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/site/{docId}": {
+      "schema": { "$ref": "#/entities/PublicProfile" },
+      "description": "Stores the public_profile document for the portfolio owner."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/PortfolioWork" },
+      "description": "Stores portfolio works posted by the owner for public showcase."
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/VisitorMessage" },
+      "description": "Stores visitor contact messages readable only by the portfolio owner."
+    }
+  }
+}

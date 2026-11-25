@@ -1,0 +1,6 @@
+{
+  "name": "Ramziddin — Portfolio va Raqamli Vitrina",
+  "description": "Shaxsiy portfolio, tanlangan loyihalar va raqamli vitrina taqdimoti uchun zamonaviy veb-sayt.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
